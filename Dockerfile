@@ -28,6 +28,6 @@ COPY . .
 EXPOSE 8000
 
 # Command to run the application
-# Use http_server.py directly for container deployments to ensure
-# the HTTP server starts reliably without depending on stdin detection
-CMD ["python", "http_server.py"] 
+# Use uvicorn directly for container deployments to ensure
+# the HTTP server starts reliably with proper signal handling
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"] 

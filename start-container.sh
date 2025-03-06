@@ -3,4 +3,4 @@
 # This script starts the server in HTTP mode for reliable API access
 
 echo "Starting MCP Calculator Server in HTTP mode for container deployment..."
-python http_server.py 
+uvicorn server:app --host 0.0.0.0 --port 8000 

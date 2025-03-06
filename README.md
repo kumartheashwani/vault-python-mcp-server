@@ -130,7 +130,7 @@ docker build -t mcp-calculator-server .
 docker run -p 8000:8000 mcp-calculator-server
 ```
 
-The container uses `http_server.py` to ensure the HTTP server starts reliably, making the API endpoints accessible at http://localhost:8000.
+The container uses `uvicorn` directly to ensure the HTTP server starts reliably with proper signal handling, making the API endpoints accessible at http://localhost:8000.
 
 ### Smithery Local Tool
 
@@ -160,4 +160,15 @@ For Smithery deployment as a remote tool (e.g., in a container), configure it to
 }
 ```
 
-This configuration ensures Smithery can access the tool's API endpoints over HTTP. 
+For the most reliable operation in container environments, use uvicorn directly in your deployment configuration:
+
+```json
+{
+  "name": "calculator",
+  "description": "A basic calculator that can perform arithmetic operations",
+  "command": ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"],
+  "type": "remote"
+}
+```
+
+This ensures proper signal handling and more reliable startup in container environments. 
