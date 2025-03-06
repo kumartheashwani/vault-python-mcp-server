@@ -118,11 +118,23 @@ async def process_jsonrpc_request(request_data: Dict[str, Any]) -> Dict[str, Any
     if request_model.method == "initialize" and not server_state.initialized:
         server_state.initialized = True
         server_state.client_info = request_model.params
+        
+        # Build tool capabilities
+        tool_capabilities = {}
+        for name, tool in TOOLS.items():
+            tool_capabilities[name] = {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": tool.parameters
+            }
+        
         return JsonRpcResponse(
             result={
                 "name": "Python MCP Calculator Server",
                 "version": "1.0.0",
-                "capabilities": {}
+                "capabilities": {
+                    "tools": tool_capabilities
+                }
             },
             id=request_model.id
         ).dict()
