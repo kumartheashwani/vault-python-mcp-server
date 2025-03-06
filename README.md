@@ -41,9 +41,9 @@ python http_server.py
 
 This mode is recommended for production deployments as it ensures the server runs reliably without the stdio loop.
 
-### Smithery Mode (stdio)
+### Smithery Mode (EXCLUSIVE stdio)
 
-For Smithery integration, run the server in stdio mode using the dedicated script:
+For Smithery integration, run the server in EXCLUSIVE stdio mode using the dedicated script:
 
 ```bash
 python smithery_mode.py
@@ -59,7 +59,7 @@ Or use the provided convenience scripts:
 start-smithery.bat
 ```
 
-This mode communicates via standard input/output and is designed specifically for Smithery's local tool integration.
+This mode communicates EXCLUSIVELY via standard input/output and is designed specifically for Smithery's local tool integration. It does NOT start the HTTP server, avoiding any conflicts or timeouts.
 
 > **IMPORTANT**: Do NOT use `python server.py` for Smithery integration as it starts both HTTP and stdio modes, which can cause conflicts or timeouts.
 
@@ -139,4 +139,4 @@ For Smithery deployment, configure the tool to use `smithery_mode.py` as the ent
 }
 ```
 
-This ensures the server starts correctly in stdio mode for Smithery integration. Using `server.py` directly will cause conflicts or timeouts as it initiates both HTTP and stdio modes. 
+This ensures the server starts correctly in EXCLUSIVE stdio mode for Smithery integration, without launching the HTTP server. Using `server.py` directly will cause conflicts or timeouts as it initiates both HTTP and stdio modes. 
