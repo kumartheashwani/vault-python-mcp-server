@@ -43,15 +43,17 @@ This mode is recommended for production deployments as it ensures the server run
 
 ### Smithery Mode (stdio)
 
-For Smithery integration, run the server in stdio mode:
+For Smithery integration, run the server in stdio mode using the dedicated script:
 
 ```bash
 python smithery_mode.py
 ```
 
-This mode communicates via standard input/output and is designed for Smithery's local tool integration.
+This mode communicates via standard input/output and is designed specifically for Smithery's local tool integration.
 
-### Dual Mode (Development)
+> **IMPORTANT**: Do NOT use `python server.py` for Smithery integration as it starts both HTTP and stdio modes, which can cause conflicts or timeouts.
+
+### Dual Mode (Development Only)
 
 For development and testing both interfaces simultaneously:
 
@@ -59,7 +61,7 @@ For development and testing both interfaces simultaneously:
 python server.py
 ```
 
-This starts both the HTTP server and stdio handler, but may exit prematurely if stdin is closed.
+This starts both the HTTP server and stdio handler, but may exit prematurely if stdin is closed. This mode is not recommended for production or Smithery integration.
 
 ## API Endpoints
 
@@ -116,4 +118,15 @@ docker run -p 8000:8000 mcp-calculator-server
 
 ### Smithery
 
-For Smithery deployment, configure the tool to use `smithery_mode.py` as the entry point. 
+For Smithery deployment, configure the tool to use `smithery_mode.py` as the entry point:
+
+```json
+{
+  "name": "calculator",
+  "description": "A basic calculator that can perform arithmetic operations",
+  "command": ["python", "smithery_mode.py"],
+  "type": "local"
+}
+```
+
+This ensures the server starts correctly in stdio mode for Smithery integration. Using `server.py` directly will cause conflicts or timeouts as it initiates both HTTP and stdio modes. 
