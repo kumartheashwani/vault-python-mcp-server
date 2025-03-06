@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Optional, Union, Literal
 import json
@@ -96,11 +96,10 @@ async def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
 
-@app.post("/")
-async def handle_jsonrpc(request: Request):
+# Helper function to process JSON-RPC requests
+async def process_jsonrpc_request(request_data: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        data = await request.json()
-        request_model = JsonRpcRequest(**data)
+        request_model = JsonRpcRequest(**request_data)
     except Exception as e:
         return JsonRpcResponse(
             error={
@@ -187,6 +186,52 @@ async def handle_jsonrpc(request: Request):
         },
         id=request_model.id
     ).dict()
+
+@app.post("/")
+async def handle_jsonrpc(request: Request):
+    try:
+        data = await request.json()
+        return await process_jsonrpc_request(data)
+    except Exception as e:
+        return JsonRpcResponse(
+            error={
+                "code": -32700,
+                "message": "Parse error",
+                "data": str(e)
+            },
+            id=None
+        ).dict()
+
+# WebSocket endpoint for Smithery
+@app.websocket("/")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            # Receive message from client
+            data = await websocket.receive_json()
+            
+            # Process the JSON-RPC request
+            response = await process_jsonrpc_request(data)
+            
+            # Send response back to client
+            await websocket.send_json(response)
+    except WebSocketDisconnect:
+        print("Client disconnected")
+    except Exception as e:
+        # Send error response
+        error_response = JsonRpcResponse(
+            error={
+                "code": -32603,
+                "message": "Internal error",
+                "data": str(e)
+            },
+            id=None
+        ).dict()
+        try:
+            await websocket.send_json(error_response)
+        except:
+            pass
 
 if __name__ == "__main__":
     import uvicorn
