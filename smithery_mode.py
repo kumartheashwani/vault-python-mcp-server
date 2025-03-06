@@ -36,7 +36,7 @@ def start_http_server():
     """Start the HTTP server"""
     import uvicorn
     print("No stdin detected. Starting in HTTP mode...", file=sys.stderr)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
 
 def start_stdio_mode():
     """Start in stdio mode"""

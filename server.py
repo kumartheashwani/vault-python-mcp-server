@@ -307,7 +307,7 @@ def start_stdio_mode():
 def start_http_mode():
     """Start the server in HTTP mode with uvicorn"""
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
 
 # This code only runs when the script is executed directly, not when imported by uvicorn
 if __name__ == "__main__":
