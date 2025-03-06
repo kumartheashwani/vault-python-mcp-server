@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, Literal
 import json
 
 app = FastAPI()
@@ -60,13 +60,13 @@ TOOLS = {
 }
 
 class JsonRpcRequest(BaseModel):
-    jsonrpc: str = Field("2.0", const=True)
+    jsonrpc: Literal["2.0"]
     method: str
     params: Optional[Dict[str, Any]] = None
     id: Optional[Union[int, str]] = None
 
 class JsonRpcResponse(BaseModel):
-    jsonrpc: str = "2.0"
+    jsonrpc: Literal["2.0"] = "2.0"
     result: Optional[Any] = None
     error: Optional[Dict[str, Any]] = None
     id: Optional[Union[int, str]] = None
@@ -79,18 +79,31 @@ class MCPServerState:
 server_state = MCPServerState()
 
 @app.post("/")
-async def handle_jsonrpc(request: JsonRpcRequest):
-    if request.method == "initialize" and not server_state.initialized:
+async def handle_jsonrpc(request: Request):
+    try:
+        data = await request.json()
+        request_model = JsonRpcRequest(**data)
+    except Exception as e:
+        return JsonRpcResponse(
+            error={
+                "code": -32700,
+                "message": "Parse error",
+                "data": str(e)
+            },
+            id=None
+        ).dict()
+
+    if request_model.method == "initialize" and not server_state.initialized:
         server_state.initialized = True
-        server_state.client_info = request.params
+        server_state.client_info = request_model.params
         return JsonRpcResponse(
             result={
                 "name": "Python MCP Calculator Server",
                 "version": "1.0.0",
                 "capabilities": {}
             },
-            id=request.id
-        )
+            id=request_model.id
+        ).dict()
     
     if not server_state.initialized:
         return JsonRpcResponse(
@@ -98,14 +111,14 @@ async def handle_jsonrpc(request: JsonRpcRequest):
                 "code": -32002,
                 "message": "Server not initialized"
             },
-            id=request.id
-        )
+            id=request_model.id
+        ).dict()
 
-    if request.method == "shutdown":
+    if request_model.method == "shutdown":
         server_state.initialized = False
-        return JsonRpcResponse(result=None, id=request.id)
+        return JsonRpcResponse(result=None, id=request_model.id).dict()
 
-    if request.method == "list_tools":
+    if request_model.method == "list_tools":
         tool_schemas = {}
         for name, tool in TOOLS.items():
             tool_schemas[name] = {
@@ -113,20 +126,20 @@ async def handle_jsonrpc(request: JsonRpcRequest):
                 "description": tool.description,
                 "parameters": tool.parameters
             }
-        return JsonRpcResponse(result=tool_schemas, id=request.id)
+        return JsonRpcResponse(result=tool_schemas, id=request_model.id).dict()
 
-    if request.method == "execute":
-        if not request.params or "function_calls" not in request.params:
+    if request_model.method == "execute":
+        if not request_model.params or "function_calls" not in request_model.params:
             return JsonRpcResponse(
                 error={
                     "code": -32602,
                     "message": "Invalid params: function_calls required"
                 },
-                id=request.id
-            )
+                id=request_model.id
+            ).dict()
 
         results = []
-        for call in request.params["function_calls"]:
+        for call in request_model.params["function_calls"]:
             if call["name"] not in TOOLS:
                 results.append({
                     "status": "error",
@@ -147,15 +160,15 @@ async def handle_jsonrpc(request: JsonRpcRequest):
                     "error": str(e)
                 })
 
-        return JsonRpcResponse(result=results, id=request.id)
+        return JsonRpcResponse(result=results, id=request_model.id).dict()
 
     return JsonRpcResponse(
         error={
             "code": -32601,
-            "message": f"Method '{request.method}' not found"
+            "message": f"Method '{request_model.method}' not found"
         },
-        id=request.id
-    )
+        id=request_model.id
+    ).dict()
 
 if __name__ == "__main__":
     import uvicorn
