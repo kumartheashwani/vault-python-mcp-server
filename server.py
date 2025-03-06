@@ -263,6 +263,68 @@ async def handle_jsonrpc(request: Request):
             id=None
         ).dict()
 
+# MCP-compatible JSON-RPC endpoint for tool listing
+@app.post("/mcp")
+async def handle_mcp_jsonrpc(request: Request):
+    """Dedicated MCP-compatible JSON-RPC endpoint for Smithery integration"""
+    try:
+        data = await request.json()
+        
+        # Always auto-initialize for MCP endpoint
+        if not server_state.initialized:
+            server_state.initialized = True
+            print("Auto-initializing server for MCP endpoint", file=sys.stderr)
+        
+        # Special handling for list_tools to ensure compatibility with Smithery
+        if data.get("method") == "list_tools":
+            tool_schemas = {}
+            for name, tool in TOOLS.items():
+                tool_schemas[name] = {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.parameters
+                }
+            return JsonRpcResponse(
+                jsonrpc="2.0",
+                result=tool_schemas,
+                id=data.get("id")
+            ).dict()
+            
+        # Handle initialize requests
+        if data.get("method") == "initialize":
+            # Build tool capabilities
+            tool_capabilities = {}
+            for name, tool in TOOLS.items():
+                tool_capabilities[name] = {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.parameters
+                }
+            
+            return JsonRpcResponse(
+                jsonrpc="2.0",
+                result={
+                    "name": "Python MCP Calculator Server",
+                    "version": "1.0.0",
+                    "capabilities": {
+                        "tools": tool_capabilities
+                    }
+                },
+                id=data.get("id")
+            ).dict()
+        
+        # For other methods, use the standard JSON-RPC handler
+        return await process_jsonrpc_request(data)
+    except Exception as e:
+        return JsonRpcResponse(
+            error={
+                "code": -32700,
+                "message": "Parse error",
+                "data": str(e)
+            },
+            id=None
+        ).dict()
+
 # WebSocket endpoint for Smithery
 @app.websocket("/")
 async def websocket_endpoint(websocket: WebSocket):
@@ -286,6 +348,83 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_json(response)
     except WebSocketDisconnect:
         print("Client disconnected")
+    except Exception as e:
+        # Send error response
+        error_response = JsonRpcResponse(
+            error={
+                "code": -32603,
+                "message": "Internal error",
+                "data": str(e)
+            },
+            id=None
+        ).dict()
+        try:
+            await websocket.send_json(error_response)
+        except:
+            pass
+
+# MCP-compatible WebSocket endpoint for Smithery
+@app.websocket("/mcp")
+async def mcp_websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        # Auto-initialize for MCP WebSocket
+        server_state.initialized = True
+        print("Auto-initializing server for MCP WebSocket connection", file=sys.stderr)
+        
+        while True:
+            # Receive message from client
+            data = await websocket.receive_json()
+            
+            # Special handling for list_tools to ensure compatibility with Smithery
+            if data.get("method") == "list_tools":
+                tool_schemas = {}
+                for name, tool in TOOLS.items():
+                    tool_schemas[name] = {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.parameters
+                    }
+                response = JsonRpcResponse(
+                    jsonrpc="2.0",
+                    result=tool_schemas,
+                    id=data.get("id")
+                ).dict()
+                await websocket.send_json(response)
+                continue
+                
+            # Handle initialize requests
+            if data.get("method") == "initialize":
+                # Build tool capabilities
+                tool_capabilities = {}
+                for name, tool in TOOLS.items():
+                    tool_capabilities[name] = {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.parameters
+                    }
+                
+                response = JsonRpcResponse(
+                    jsonrpc="2.0",
+                    result={
+                        "name": "Python MCP Calculator Server",
+                        "version": "1.0.0",
+                        "capabilities": {
+                            "tools": tool_capabilities
+                        }
+                    },
+                    id=data.get("id")
+                ).dict()
+                await websocket.send_json(response)
+                continue
+            
+            # Process the JSON-RPC request
+            response = await process_jsonrpc_request(data)
+            
+            # Send response back to client
+            await websocket.send_json(response)
+    except WebSocketDisconnect:
+        print("Client disconnected from MCP WebSocket")
     except Exception as e:
         # Send error response
         error_response = JsonRpcResponse(

@@ -88,10 +88,17 @@ This starts both the HTTP server and stdio handler simultaneously, but may exit 
 
 ## API Endpoints
 
+### Standard Endpoints
 - `GET /health`: Health check endpoint
 - `GET /tools`: List available tools and their schemas
 - `POST /`: JSON-RPC endpoint for MCP protocol
 - WebSocket at `/`: WebSocket endpoint for MCP protocol
+
+### Smithery Integration Endpoints
+- `POST /mcp`: Dedicated MCP-compatible JSON-RPC endpoint for Smithery integration
+- WebSocket at `/mcp`: Dedicated MCP-compatible WebSocket endpoint for Smithery integration
+
+These dedicated MCP endpoints are specifically designed for Smithery integration and automatically handle initialization and tool listing without requiring explicit initialization steps.
 
 ## Using the Calculator Tool
 
@@ -161,16 +168,18 @@ This configuration ensures the server communicates via stdio when run by Smither
 
 ### Smithery Remote Tool
 
-For Smithery deployment as a remote tool (e.g., in a container), configure it to use HTTP mode:
+For Smithery deployment as a remote tool (e.g., in a container), configure it to use the dedicated MCP endpoint:
 
 ```json
 {
   "name": "calculator",
   "description": "A basic calculator that can perform arithmetic operations",
-  "url": "http://your-container-host:8000",
+  "url": "http://your-container-host:8000/mcp",
   "type": "remote"
 }
 ```
+
+This configuration ensures Smithery can access the tool's API endpoints over HTTP using the dedicated MCP-compatible endpoint.
 
 For the most reliable operation in container environments, use uvicorn directly in your deployment configuration:
 
