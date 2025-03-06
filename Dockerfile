@@ -28,6 +28,6 @@ COPY . .
 EXPOSE 8000
 
 # Command to run the application
-# Use uvicorn directly to run the FastAPI app, bypassing the __main__ block in server.py
-# This ensures the server runs in pure HTTP mode without the stdio loop
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Use the adaptive mode script which will automatically fall back to HTTP mode
+# in container environments where stdin is not available
+CMD ["python", "smithery_mode.py"] 

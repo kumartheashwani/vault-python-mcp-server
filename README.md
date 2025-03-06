@@ -9,6 +9,7 @@ A Model Context Protocol (MCP) server implementation with a basic calculator too
 - JSON schema validation
 - Error handling
 - Multiple communication modes (HTTP, WebSocket, stdio)
+- Adaptive mode selection for flexible deployment
 
 ## Installation
 
@@ -41,9 +42,9 @@ python http_server.py
 
 This mode is recommended for production deployments as it ensures the server runs reliably without the stdio loop.
 
-### Smithery Mode (EXCLUSIVE stdio)
+### Adaptive Smithery Mode
 
-For Smithery integration, run the server in EXCLUSIVE stdio mode using the dedicated script:
+For Smithery integration and container deployments, use the adaptive mode:
 
 ```bash
 python smithery_mode.py
@@ -59,9 +60,13 @@ Or use the provided convenience scripts:
 start-smithery.bat
 ```
 
-This mode communicates EXCLUSIVELY via standard input/output and is designed specifically for Smithery's local tool integration. It does NOT start the HTTP server, avoiding any conflicts or timeouts.
+This mode intelligently selects the appropriate communication method:
+- If stdin is available (e.g., when run by Smithery as a local tool), it operates in stdio mode
+- If stdin is not available (e.g., in container deployments), it automatically falls back to HTTP mode
 
-> **IMPORTANT**: Do NOT use `python server.py` for Smithery integration as it starts both HTTP and stdio modes, which can cause conflicts or timeouts.
+This adaptive behavior ensures the server works correctly in all deployment scenarios.
+
+> **IMPORTANT**: Do NOT use `python server.py` for Smithery integration as it starts both HTTP and stdio modes simultaneously, which can cause conflicts or timeouts.
 
 ### Dual Mode (Development Only)
 
@@ -71,7 +76,7 @@ For development and testing both interfaces simultaneously:
 python server.py
 ```
 
-This starts both the HTTP server and stdio handler, but may exit prematurely if stdin is closed. This mode is not recommended for production or Smithery integration.
+This starts both the HTTP server and stdio handler simultaneously, but may exit prematurely if stdin is closed. This mode is not recommended for production or Smithery integration.
 
 ## API Endpoints
 
@@ -126,6 +131,8 @@ docker build -t mcp-calculator-server .
 docker run -p 8000:8000 mcp-calculator-server
 ```
 
+The container will automatically start in HTTP mode since stdin is not available.
+
 ### Smithery
 
 For Smithery deployment, configure the tool to use `smithery_mode.py` as the entry point:
@@ -139,4 +146,5 @@ For Smithery deployment, configure the tool to use `smithery_mode.py` as the ent
 }
 ```
 
-This ensures the server starts correctly in EXCLUSIVE stdio mode for Smithery integration, without launching the HTTP server. Using `server.py` directly will cause conflicts or timeouts as it initiates both HTTP and stdio modes. 
+When run by Smithery as a local tool, the server will operate in stdio mode.
+When deployed as a container, it will automatically fall back to HTTP mode if stdin is not available. 

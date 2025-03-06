@@ -1,7 +1,8 @@
 @echo off
 REM Start script for Smithery integration
-REM This script ensures the MCP server starts EXCLUSIVELY in stdio mode
-REM without launching the HTTP server
+REM This script uses the adaptive mode selection:
+REM - If stdin is available, it runs in stdio mode
+REM - If stdin is not available, it falls back to HTTP mode
 
-echo Starting MCP Calculator Server in EXCLUSIVE stdio mode for Smithery...
+echo Starting MCP Calculator Server with adaptive mode selection...
 python smithery_mode.py 
