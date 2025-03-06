@@ -325,8 +325,18 @@ def start_http_mode():
 if __name__ == "__main__":
     # Check if we should run in stdio mode (for Smithery)
     if os.environ.get("MCP_STDIO_MODE") == "1":
+        # Run only stdio mode when MCP_STDIO_MODE is set
+        print("Starting in exclusive stdio mode (MCP_STDIO_MODE=1)", file=sys.stderr)
         start_stdio_mode()
+    elif os.environ.get("MCP_HTTP_MODE") == "1":
+        # Run only HTTP mode when MCP_HTTP_MODE is set
+        print("Starting in exclusive HTTP mode (MCP_HTTP_MODE=1)", file=sys.stderr)
+        start_http_mode()
     else:
+        # For development/testing only - warn about dual mode
+        print("WARNING: Starting in dual mode (both HTTP and stdio). This is not recommended for production.", file=sys.stderr)
+        print("Use MCP_STDIO_MODE=1 or MCP_HTTP_MODE=1 to run in a single mode.", file=sys.stderr)
+        
         # Start HTTP server in a separate thread
         http_thread = threading.Thread(target=start_http_mode)
         http_thread.daemon = True

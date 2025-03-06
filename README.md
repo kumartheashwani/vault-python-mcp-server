@@ -31,13 +31,19 @@ pip install -r requirements.txt
 Run the server in pure HTTP mode using uvicorn directly:
 
 ```bash
+# Set environment variable to ensure only HTTP mode runs
+export MCP_HTTP_MODE=1  # On Windows: set MCP_HTTP_MODE=1
 uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
 Or use the provided script:
 
 ```bash
-python http_server.py
+# On Unix/Linux/Mac
+./start-container.sh
+
+# On Windows
+start-container.bat
 ```
 
 This mode is recommended for:
@@ -50,7 +56,9 @@ This mode is recommended for:
 For Smithery integration as a local tool, use the stdio mode:
 
 ```bash
-python smithery_mode.py
+# Set environment variable to ensure only stdio mode runs
+export MCP_STDIO_MODE=1  # On Windows: set MCP_STDIO_MODE=1
+python server.py
 ```
 
 Or use the provided convenience scripts:
@@ -65,13 +73,14 @@ start-smithery.bat
 
 This mode is specifically designed for Smithery's local tool integration and communicates via standard input/output.
 
-> **IMPORTANT**: Do NOT use `python server.py` for Smithery integration as it starts both HTTP and stdio modes simultaneously, which can cause conflicts or timeouts.
+> **IMPORTANT**: Do NOT use `python server.py` without setting environment variables as it starts both HTTP and stdio modes simultaneously, which can cause conflicts or timeouts.
 
 ### Dual Mode (Development Only)
 
 For development and testing both interfaces simultaneously:
 
 ```bash
+# No environment variables set - runs both modes
 python server.py
 ```
 
@@ -134,13 +143,16 @@ The container uses `uvicorn` directly to ensure the HTTP server starts reliably 
 
 ### Smithery Local Tool
 
-For Smithery deployment as a local tool, configure it to use `smithery_mode.py`:
+For Smithery deployment as a local tool, configure it to use `server.py` with the `MCP_STDIO_MODE` environment variable:
 
 ```json
 {
   "name": "calculator",
   "description": "A basic calculator that can perform arithmetic operations",
-  "command": ["python", "smithery_mode.py"],
+  "command": ["python", "server.py"],
+  "env": {
+    "MCP_STDIO_MODE": "1"
+  },
   "type": "local"
 }
 ```
@@ -167,6 +179,9 @@ For the most reliable operation in container environments, use uvicorn directly 
   "name": "calculator",
   "description": "A basic calculator that can perform arithmetic operations",
   "command": ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"],
+  "env": {
+    "MCP_HTTP_MODE": "1"
+  },
   "type": "remote"
 }
 ```

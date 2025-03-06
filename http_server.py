@@ -4,7 +4,11 @@ HTTP mode runner for the MCP server.
 This script runs the server in pure HTTP mode without the stdio loop.
 """
 
+import os
 import uvicorn
+
+# Set environment variable to ensure server.py only runs in HTTP mode
+os.environ["MCP_HTTP_MODE"] = "1"
 
 if __name__ == "__main__":
     # Run the server in pure HTTP mode using uvicorn

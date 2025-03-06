@@ -3,4 +3,5 @@
 # This script starts the server in stdio mode for communication with Smithery
 
 echo "Starting MCP Calculator Server in stdio mode for Smithery local tool integration..."
-python smithery_mode.py 
+export MCP_STDIO_MODE=1
+python server.py 
