@@ -78,6 +78,24 @@ class MCPServerState:
 
 server_state = MCPServerState()
 
+# Standard REST endpoint for Smithery compatibility
+@app.get("/tools")
+async def get_tools():
+    """Standard REST endpoint to list available tools"""
+    tool_schemas = {}
+    for name, tool in TOOLS.items():
+        tool_schemas[name] = {
+            "name": tool.name,
+            "description": tool.description,
+            "parameters": tool.parameters
+        }
+    return tool_schemas
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy"}
+
 @app.post("/")
 async def handle_jsonrpc(request: Request):
     try:
