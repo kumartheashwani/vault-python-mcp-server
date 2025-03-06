@@ -8,6 +8,7 @@ A Model Context Protocol (MCP) server implementation with a basic calculator too
 - MCP-compliant API endpoints
 - JSON schema validation
 - Error handling
+- Multiple communication modes (HTTP, WebSocket, stdio)
 
 ## Installation
 
@@ -24,35 +25,67 @@ pip install -r requirements.txt
 
 ## Running the Server
 
-Start the server with:
+### Pure HTTP Mode (Recommended for Production)
+
+Run the server in pure HTTP mode using uvicorn directly:
+
+```bash
+uvicorn server:app --host 0.0.0.0 --port 8000
+```
+
+Or use the provided script:
+
+```bash
+python http_server.py
+```
+
+This mode is recommended for production deployments as it ensures the server runs reliably without the stdio loop.
+
+### Smithery Mode (stdio)
+
+For Smithery integration, run the server in stdio mode:
+
+```bash
+python smithery_mode.py
+```
+
+This mode communicates via standard input/output and is designed for Smithery's local tool integration.
+
+### Dual Mode (Development)
+
+For development and testing both interfaces simultaneously:
+
 ```bash
 python server.py
 ```
 
-The server will run on `http://localhost:8000`
+This starts both the HTTP server and stdio handler, but may exit prematurely if stdin is closed.
 
 ## API Endpoints
 
-- `GET /`: Health check endpoint
+- `GET /health`: Health check endpoint
 - `GET /tools`: List available tools and their schemas
-- `POST /execute`: Execute tool operations
+- `POST /`: JSON-RPC endpoint for MCP protocol
+- WebSocket at `/`: WebSocket endpoint for MCP protocol
 
 ## Using the Calculator Tool
 
-Example request to the `/execute` endpoint:
+### REST API
 
-```json
-{
-    "function_calls": [
-        {
-            "name": "calculator",
-            "parameters": {
-                "operation": "add",
-                "numbers": [1, 2, 3, 4]
-            }
-        }
-    ]
-}
+Example request to the `/tools` endpoint:
+
+```bash
+curl -X GET http://localhost:8000/tools
+```
+
+### JSON-RPC (HTTP)
+
+Example request to the JSON-RPC endpoint:
+
+```bash
+curl -X POST http://localhost:8000/ \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "execute", "params": {"function_calls": [{"name": "calculator", "parameters": {"operation": "add", "numbers": [1, 2, 3, 4]}}]}, "id": 1}'
 ```
 
 Available operations:
@@ -68,7 +101,19 @@ The server provides clear error messages for:
 - Division by zero
 - Insufficient number of operands
 - Invalid parameter types
+- JSON-RPC protocol errors
 
-## Deployment in Smithery
+## Deployment
 
-This server is designed to be deployed in Smithery. Follow Smithery's documentation for deployment instructions. 
+### Docker
+
+Build and run the Docker container:
+
+```bash
+docker build -t mcp-calculator-server .
+docker run -p 8000:8000 mcp-calculator-server
+```
+
+### Smithery
+
+For Smithery deployment, configure the tool to use `smithery_mode.py` as the entry point. 
