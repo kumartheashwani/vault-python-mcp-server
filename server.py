@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Dict, Any, List, Optional
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel, Field
+from typing import Dict, Any, List, Optional, Union
 import json
 
 app = FastAPI()
@@ -59,50 +59,103 @@ TOOLS = {
     calculator.name: calculator
 }
 
-class FunctionCall(BaseModel):
-    name: str
-    parameters: Dict[str, Any]
+class JsonRpcRequest(BaseModel):
+    jsonrpc: str = Field("2.0", const=True)
+    method: str
+    params: Optional[Dict[str, Any]] = None
+    id: Optional[Union[int, str]] = None
 
-class MCPRequest(BaseModel):
-    function_calls: List[FunctionCall]
+class JsonRpcResponse(BaseModel):
+    jsonrpc: str = "2.0"
+    result: Optional[Any] = None
+    error: Optional[Dict[str, Any]] = None
+    id: Optional[Union[int, str]] = None
 
-@app.get("/")
-async def root():
-    return {"message": "MCP Calculator Server is running"}
+class MCPServerState:
+    def __init__(self):
+        self.initialized = False
+        self.client_info = None
 
-@app.get("/tools")
-async def list_tools():
-    tool_schemas = {}
-    for name, tool in TOOLS.items():
-        tool_schemas[name] = {
-            "name": tool.name,
-            "description": tool.description,
-            "parameters": tool.parameters
-        }
-    return tool_schemas
+server_state = MCPServerState()
 
-@app.post("/execute")
-async def execute_tools(request: MCPRequest):
-    results = []
+@app.post("/")
+async def handle_jsonrpc(request: JsonRpcRequest):
+    if request.method == "initialize" and not server_state.initialized:
+        server_state.initialized = True
+        server_state.client_info = request.params
+        return JsonRpcResponse(
+            result={
+                "name": "Python MCP Calculator Server",
+                "version": "1.0.0",
+                "capabilities": {}
+            },
+            id=request.id
+        )
     
-    for call in request.function_calls:
-        if call.name not in TOOLS:
-            raise HTTPException(status_code=404, detail=f"Tool '{call.name}' not found")
-        
-        try:
-            tool = TOOLS[call.name]
-            result = tool.execute(call.parameters)
-            results.append({
-                "status": "success",
-                "result": result
-            })
-        except Exception as e:
-            results.append({
-                "status": "error",
-                "error": str(e)
-            })
-    
-    return results
+    if not server_state.initialized:
+        return JsonRpcResponse(
+            error={
+                "code": -32002,
+                "message": "Server not initialized"
+            },
+            id=request.id
+        )
+
+    if request.method == "shutdown":
+        server_state.initialized = False
+        return JsonRpcResponse(result=None, id=request.id)
+
+    if request.method == "list_tools":
+        tool_schemas = {}
+        for name, tool in TOOLS.items():
+            tool_schemas[name] = {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": tool.parameters
+            }
+        return JsonRpcResponse(result=tool_schemas, id=request.id)
+
+    if request.method == "execute":
+        if not request.params or "function_calls" not in request.params:
+            return JsonRpcResponse(
+                error={
+                    "code": -32602,
+                    "message": "Invalid params: function_calls required"
+                },
+                id=request.id
+            )
+
+        results = []
+        for call in request.params["function_calls"]:
+            if call["name"] not in TOOLS:
+                results.append({
+                    "status": "error",
+                    "error": f"Tool '{call['name']}' not found"
+                })
+                continue
+
+            try:
+                tool = TOOLS[call["name"]]
+                result = tool.execute(call["parameters"])
+                results.append({
+                    "status": "success",
+                    "result": result
+                })
+            except Exception as e:
+                results.append({
+                    "status": "error",
+                    "error": str(e)
+                })
+
+        return JsonRpcResponse(result=results, id=request.id)
+
+    return JsonRpcResponse(
+        error={
+            "code": -32601,
+            "message": f"Method '{request.method}' not found"
+        },
+        id=request.id
+    )
 
 if __name__ == "__main__":
     import uvicorn
