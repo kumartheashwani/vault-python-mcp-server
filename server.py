@@ -309,6 +309,7 @@ def start_http_mode():
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
+# This code only runs when the script is executed directly, not when imported by uvicorn
 if __name__ == "__main__":
     # Check if we should run in stdio mode (for Smithery)
     if os.environ.get("MCP_STDIO_MODE") == "1":

@@ -28,4 +28,5 @@ COPY . .
 EXPOSE 8000
 
 # Command to run the application
+# Use uvicorn directly to run the FastAPI app, which avoids the stdio mode issue
 CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"] 
