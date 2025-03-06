@@ -83,10 +83,16 @@ class MCPServerState:
 
 server_state = MCPServerState()
 
+# Auto-initialize the server in HTTP mode
+if os.environ.get("MCP_HTTP_MODE") == "1":
+    server_state.initialized = True
+    print("Auto-initializing server in HTTP mode", file=sys.stderr)
+
 # Standard REST endpoint for Smithery compatibility
 @app.get("/tools")
 async def get_tools():
     """Standard REST endpoint to list available tools"""
+    # In HTTP mode, we don't require initialization for the /tools endpoint
     tool_schemas = {}
     for name, tool in TOOLS.items():
         tool_schemas[name] = {
@@ -153,6 +159,16 @@ async def process_jsonrpc_request(request_data: Dict[str, Any]) -> Dict[str, Any
         return JsonRpcResponse(result=None, id=request_model.id).dict()
 
     if request_model.method == "list_tools":
+        # In HTTP mode, allow list_tools without initialization
+        if not server_state.initialized and os.environ.get("MCP_HTTP_MODE") != "1":
+            return JsonRpcResponse(
+                error={
+                    "code": -32002,
+                    "message": "Server not initialized"
+                },
+                id=request_model.id
+            ).dict()
+            
         tool_schemas = {}
         for name, tool in TOOLS.items():
             tool_schemas[name] = {
@@ -163,6 +179,16 @@ async def process_jsonrpc_request(request_data: Dict[str, Any]) -> Dict[str, Any
         return JsonRpcResponse(result=tool_schemas, id=request_model.id).dict()
 
     if request_model.method == "execute":
+        # In HTTP mode, allow execute without initialization
+        if not server_state.initialized and os.environ.get("MCP_HTTP_MODE") != "1":
+            return JsonRpcResponse(
+                error={
+                    "code": -32002,
+                    "message": "Server not initialized"
+                },
+                id=request_model.id
+            ).dict()
+            
         if not request_model.params or "function_calls" not in request_model.params:
             return JsonRpcResponse(
                 error={
@@ -196,6 +222,16 @@ async def process_jsonrpc_request(request_data: Dict[str, Any]) -> Dict[str, Any
 
         return JsonRpcResponse(result=results, id=request_model.id).dict()
 
+    # For unknown methods, check if we're in HTTP mode and initialized
+    if not server_state.initialized and os.environ.get("MCP_HTTP_MODE") != "1":
+        return JsonRpcResponse(
+            error={
+                "code": -32002,
+                "message": "Server not initialized"
+            },
+            id=request_model.id
+        ).dict()
+    
     return JsonRpcResponse(
         error={
             "code": -32601,
@@ -208,6 +244,14 @@ async def process_jsonrpc_request(request_data: Dict[str, Any]) -> Dict[str, Any
 async def handle_jsonrpc(request: Request):
     try:
         data = await request.json()
+        
+        # In HTTP mode, allow certain methods without initialization
+        if os.environ.get("MCP_HTTP_MODE") == "1" and not server_state.initialized:
+            # Auto-initialize for HTTP mode if this is not an initialize request
+            if data.get("method") != "initialize":
+                server_state.initialized = True
+                print("Auto-initializing server for JSON-RPC request in HTTP mode", file=sys.stderr)
+        
         return await process_jsonrpc_request(data)
     except Exception as e:
         return JsonRpcResponse(
@@ -227,6 +271,13 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             # Receive message from client
             data = await websocket.receive_json()
+            
+            # In HTTP mode, allow certain methods without initialization
+            if os.environ.get("MCP_HTTP_MODE") == "1" and not server_state.initialized:
+                # Auto-initialize for HTTP mode if this is not an initialize request
+                if data.get("method") != "initialize":
+                    server_state.initialized = True
+                    print("Auto-initializing server for WebSocket request in HTTP mode", file=sys.stderr)
             
             # Process the JSON-RPC request
             response = await process_jsonrpc_request(data)
@@ -318,6 +369,10 @@ def start_stdio_mode():
 
 def start_http_mode():
     """Start the server in HTTP mode with uvicorn"""
+    # Ensure the server is initialized in HTTP mode
+    server_state.initialized = True
+    print("Starting in HTTP mode with auto-initialization", file=sys.stderr)
+    
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
 
