@@ -2,6 +2,11 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Optional, Union, Literal
 import json
+import sys
+import asyncio
+import threading
+import signal
+import os
 
 app = FastAPI()
 
@@ -233,6 +238,86 @@ async def websocket_endpoint(websocket: WebSocket):
         except:
             pass
 
-if __name__ == "__main__":
+# Function to handle JSON-RPC over stdio
+async def handle_stdio_jsonrpc():
+    """Process JSON-RPC messages from stdin and write responses to stdout"""
+    # Set up non-blocking stdin reading
+    loop = asyncio.get_event_loop()
+    reader = asyncio.StreamReader()
+    protocol = asyncio.StreamReaderProtocol(reader)
+    await loop.connect_read_pipe(lambda: protocol, sys.stdin)
+    
+    # Buffer for incomplete JSON
+    buffer = ""
+    
+    while True:
+        # Read from stdin
+        line = await reader.readline()
+        if not line:  # EOF
+            break
+            
+        try:
+            # Add to buffer and try to parse
+            buffer += line.decode('utf-8')
+            
+            # Try to parse as JSON
+            try:
+                request_data = json.loads(buffer)
+                buffer = ""  # Reset buffer on successful parse
+                
+                # Process the request
+                response = await process_jsonrpc_request(request_data)
+                
+                # Write response to stdout
+                sys.stdout.write(json.dumps(response) + "\n")
+                sys.stdout.flush()
+                
+                # Exit if shutdown was called
+                if request_data.get("method") == "shutdown":
+                    if os.environ.get("MCP_STDIO_MODE") == "1":
+                        # Only exit in stdio mode
+                        sys.exit(0)
+            except json.JSONDecodeError:
+                # Incomplete JSON, continue reading
+                pass
+        except Exception as e:
+            # Handle any errors
+            error_response = JsonRpcResponse(
+                error={
+                    "code": -32603,
+                    "message": "Internal error",
+                    "data": str(e)
+                },
+                id=None
+            ).dict()
+            sys.stdout.write(json.dumps(error_response) + "\n")
+            sys.stdout.flush()
+            buffer = ""  # Reset buffer on error
+
+def start_stdio_mode():
+    """Start the server in stdio mode"""
+    print("Starting in stdio mode", file=sys.stderr)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(handle_stdio_jsonrpc())
+    finally:
+        loop.close()
+
+def start_http_mode():
+    """Start the server in HTTP mode with uvicorn"""
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+if __name__ == "__main__":
+    # Check if we should run in stdio mode (for Smithery)
+    if os.environ.get("MCP_STDIO_MODE") == "1":
+        start_stdio_mode()
+    else:
+        # Start HTTP server in a separate thread
+        http_thread = threading.Thread(target=start_http_mode)
+        http_thread.daemon = True
+        http_thread.start()
+        
+        # Also handle stdio in the main thread
+        start_stdio_mode() 
