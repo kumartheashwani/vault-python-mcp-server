@@ -49,6 +49,16 @@ For Smithery integration, run the server in stdio mode using the dedicated scrip
 python smithery_mode.py
 ```
 
+Or use the provided convenience scripts:
+
+```bash
+# On Unix/Linux/Mac
+./start-smithery.sh
+
+# On Windows
+start-smithery.bat
+```
+
 This mode communicates via standard input/output and is designed specifically for Smithery's local tool integration.
 
 > **IMPORTANT**: Do NOT use `python server.py` for Smithery integration as it starts both HTTP and stdio modes, which can cause conflicts or timeouts.
