@@ -9,7 +9,7 @@ A Model Context Protocol (MCP) server implementation with a basic calculator too
 - JSON schema validation
 - Error handling
 - Multiple communication modes (HTTP, WebSocket, stdio)
-- Adaptive mode selection for flexible deployment
+- Specialized entry points for different deployment scenarios
 
 ## Installation
 
@@ -26,7 +26,7 @@ pip install -r requirements.txt
 
 ## Running the Server
 
-### Pure HTTP Mode (Recommended for Production)
+### HTTP Mode (Recommended for Production & Containers)
 
 Run the server in pure HTTP mode using uvicorn directly:
 
@@ -40,11 +40,14 @@ Or use the provided script:
 python http_server.py
 ```
 
-This mode is recommended for production deployments as it ensures the server runs reliably without the stdio loop.
+This mode is recommended for:
+- Production deployments
+- Container environments
+- Any scenario where reliable HTTP endpoints are required
 
-### Adaptive Smithery Mode
+### Smithery Mode (Local Tool Integration)
 
-For Smithery integration and container deployments, use the adaptive mode:
+For Smithery integration as a local tool, use the stdio mode:
 
 ```bash
 python smithery_mode.py
@@ -60,11 +63,7 @@ Or use the provided convenience scripts:
 start-smithery.bat
 ```
 
-This mode intelligently selects the appropriate communication method:
-- If stdin is available (e.g., when run by Smithery as a local tool), it operates in stdio mode
-- If stdin is not available (e.g., in container deployments), it automatically falls back to HTTP mode
-
-This adaptive behavior ensures the server works correctly in all deployment scenarios.
+This mode is specifically designed for Smithery's local tool integration and communicates via standard input/output.
 
 > **IMPORTANT**: Do NOT use `python server.py` for Smithery integration as it starts both HTTP and stdio modes simultaneously, which can cause conflicts or timeouts.
 
@@ -122,7 +121,7 @@ The server provides clear error messages for:
 
 ## Deployment
 
-### Docker
+### Docker Container
 
 Build and run the Docker container:
 
@@ -131,11 +130,11 @@ docker build -t mcp-calculator-server .
 docker run -p 8000:8000 mcp-calculator-server
 ```
 
-The container will automatically start in HTTP mode since stdin is not available.
+The container uses `http_server.py` to ensure the HTTP server starts reliably, making the API endpoints accessible at http://localhost:8000.
 
-### Smithery
+### Smithery Local Tool
 
-For Smithery deployment, configure the tool to use `smithery_mode.py` as the entry point:
+For Smithery deployment as a local tool, configure it to use `smithery_mode.py`:
 
 ```json
 {
@@ -146,5 +145,19 @@ For Smithery deployment, configure the tool to use `smithery_mode.py` as the ent
 }
 ```
 
-When run by Smithery as a local tool, the server will operate in stdio mode.
-When deployed as a container, it will automatically fall back to HTTP mode if stdin is not available. 
+This configuration ensures the server communicates via stdio when run by Smithery as a local tool.
+
+### Smithery Remote Tool
+
+For Smithery deployment as a remote tool (e.g., in a container), configure it to use HTTP mode:
+
+```json
+{
+  "name": "calculator",
+  "description": "A basic calculator that can perform arithmetic operations",
+  "url": "http://your-container-host:8000",
+  "type": "remote"
+}
+```
+
+This configuration ensures Smithery can access the tool's API endpoints over HTTP. 

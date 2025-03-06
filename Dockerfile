@@ -28,6 +28,6 @@ COPY . .
 EXPOSE 8000
 
 # Command to run the application
-# Use the adaptive mode script which will automatically fall back to HTTP mode
-# in container environments where stdin is not available
-CMD ["python", "smithery_mode.py"] 
+# Use http_server.py directly for container deployments to ensure
+# the HTTP server starts reliably without depending on stdin detection
+CMD ["python", "http_server.py"] 

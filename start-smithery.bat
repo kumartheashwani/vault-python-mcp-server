@@ -1,8 +1,6 @@
 @echo off
-REM Start script for Smithery integration
-REM This script uses the adaptive mode selection:
-REM - If stdin is available, it runs in stdio mode
-REM - If stdin is not available, it falls back to HTTP mode
+REM Start script for Smithery integration as a local tool
+REM This script starts the server in stdio mode for communication with Smithery
 
-echo Starting MCP Calculator Server with adaptive mode selection...
+echo Starting MCP Calculator Server in stdio mode for Smithery local tool integration...
 python smithery_mode.py 
