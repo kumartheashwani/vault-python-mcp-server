@@ -172,6 +172,32 @@ Or use the provided convenience scripts:
 start-smithery.bat
 ```
 
+#### Docker Container for Smithery Integration
+
+For Smithery integration in a container, use the dedicated Smithery Dockerfile:
+
+```bash
+# Build the Smithery-specific container
+docker build -t mcp-calculator-smithery -f Dockerfile.smithery .
+
+# Run the container with stdio mode
+docker run -i mcp-calculator-smithery
+```
+
+Or use the provided convenience scripts:
+
+```bash
+# On Unix/Linux/Mac
+./run-smithery-container.sh
+
+# On Windows
+run-smithery-container.bat
+```
+
+This container is specifically configured for Smithery integration and runs in stdio mode with the required logging configuration.
+
+#### Smithery Configuration
+
 Configure Smithery to use the server as a local tool:
 
 ```json
