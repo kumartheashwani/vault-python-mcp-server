@@ -10,13 +10,24 @@ import os
 import logging
 from loguru import logger
 
-# Configure logging
-logger.remove()
-logger.add(sys.stderr, level="INFO")
-logger.add("logs/server.log", rotation="10 MB", level="DEBUG")
+# Configure logging based on environment variables
+LOGGING_CONFIG = os.environ.get("LOGGING_CONFIG", "default")
+logger.remove()  # Remove default handlers
 
 # Create logs directory if it doesn't exist
 os.makedirs("logs", exist_ok=True)
+
+# Configure logging based on mode
+if os.environ.get("MCP_STDIO_MODE") == "1":
+    # Stdio mode logging - minimal output to stderr
+    logger.add(sys.stderr, level="INFO", format="{message}")
+    logger.add("logs/stdio-server.log", rotation="10 MB", level="DEBUG")
+    logger.info("Configuring logging for stdio mode")
+else:
+    # HTTP mode logging - more detailed output
+    logger.add(sys.stderr, level="INFO")
+    logger.add("logs/server.log", rotation="10 MB", level="DEBUG")
+    logger.info("Configuring logging for HTTP mode")
 
 # Log startup information
 logger.info("Initializing MCP Calculator Server")

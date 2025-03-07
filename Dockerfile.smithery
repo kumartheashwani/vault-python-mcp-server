@@ -7,7 +7,8 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    MCP_STDIO_MODE=1
+    MCP_STDIO_MODE=1 \
+    LOGGING_CONFIG=stdio
 
 # Install system dependencies
 RUN apt-get update \
@@ -31,4 +32,4 @@ COPY logback-*.xml /app/
 COPY . .
 
 # Command to run the application in stdio mode for Smithery integration
-CMD ["python", "-Dlogging.config=classpath:logback-stdio.xml", "server.py"] 
+CMD ["python", "server.py"] 

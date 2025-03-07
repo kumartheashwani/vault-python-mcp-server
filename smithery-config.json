@@ -1,9 +1,10 @@
 {
   "name": "calculator",
   "description": "A basic calculator that can perform arithmetic operations",
-  "command": ["python", "-Dlogging.config=classpath:logback-stdio.xml", "server.py"],
+  "command": ["python", "server.py"],
   "env": {
-    "MCP_STDIO_MODE": "1"
+    "MCP_STDIO_MODE": "1",
+    "LOGGING_CONFIG": "stdio"
   },
   "type": "local"
 } 

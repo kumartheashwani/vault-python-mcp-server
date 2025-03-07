@@ -6,13 +6,12 @@ This script checks the environment variables and prints the current mode.
 
 import os
 import sys
-import argparse
 
-def check_mode(args):
-    """Check the current mode based on environment variables and command line arguments."""
+def check_mode():
+    """Check the current mode based on environment variables."""
     stdio_mode = os.environ.get("MCP_STDIO_MODE") == "1"
     http_mode = os.environ.get("MCP_HTTP_MODE") == "1"
-    has_logging_config = args.logging_config
+    logging_config = os.environ.get("LOGGING_CONFIG")
     
     if stdio_mode and http_mode:
         print("WARNING: Both MCP_STDIO_MODE and MCP_HTTP_MODE are set to 1.")
@@ -23,13 +22,14 @@ def check_mode(args):
         print("Server is configured to run in stdio mode (MCP_STDIO_MODE=1).")
         print("This is the correct mode for Smithery local tool integration.")
         
-        if not has_logging_config:
-            print("\nWARNING: Missing required logging configuration flag.")
-            print("For stdio mode, you must include the logging configuration flag:")
-            print("  -Dlogging.config=classpath:logback-stdio.xml")
+        if not logging_config:
+            print("\nWARNING: Missing logging configuration environment variable.")
+            print("For stdio mode, you should set the LOGGING_CONFIG environment variable:")
+            print("  export LOGGING_CONFIG=stdio  # On Unix/Linux/Mac")
+            print("  set LOGGING_CONFIG=stdio     # On Windows")
             return False
             
-        print("Logging configuration is correctly set.")
+        print(f"Logging configuration is set to: {logging_config}")
         return True
     
     if http_mode:
@@ -44,22 +44,19 @@ def check_mode(args):
     return False
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Verify server mode configuration")
-    parser.add_argument("--logging-config", action="store_true", default=False,
-                        help="Flag to indicate if logging configuration is set")
-    args = parser.parse_args()
-    
     print("Checking server mode configuration...")
-    success = check_mode(args)
+    success = check_mode()
     
     if not success:
         print("\nTo run in stdio mode for Smithery local tool integration:")
-        print("  export MCP_STDIO_MODE=1  # On Unix/Linux/Mac")
-        print("  set MCP_STDIO_MODE=1     # On Windows")
-        print("  python -Dlogging.config=classpath:logback-stdio.xml server.py")
+        print("  export MCP_STDIO_MODE=1     # On Unix/Linux/Mac")
+        print("  export LOGGING_CONFIG=stdio # On Unix/Linux/Mac")
+        print("  set MCP_STDIO_MODE=1        # On Windows")
+        print("  set LOGGING_CONFIG=stdio    # On Windows")
+        print("  python server.py")
         print("\nOr use the provided scripts:")
-        print("  ./start-smithery.sh      # On Unix/Linux/Mac")
-        print("  start-smithery.bat       # On Windows")
+        print("  ./start-smithery.sh         # On Unix/Linux/Mac")
+        print("  start-smithery.bat          # On Windows")
         sys.exit(1)
     
     print("Mode configuration is correct.")
