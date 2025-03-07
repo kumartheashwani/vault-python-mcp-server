@@ -13,12 +13,12 @@ set MCP_STDIO_MODE=1
 REM Verify mode (optional)
 if exist verify-mode.py (
     echo Verifying mode configuration...
-    python verify-mode.py
+    python verify-mode.py --logging-config
     if errorlevel 1 (
         echo Mode verification failed. Please check the configuration.
         exit /b 1
     )
 )
 
-REM Start the server in stdio mode
-python server.py 
+REM Start the server in stdio mode with the required logging configuration
+python -Dlogging.config=classpath:logback-stdio.xml server.py 

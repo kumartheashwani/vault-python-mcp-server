@@ -152,12 +152,14 @@ The container uses `uvicorn` directly to ensure the HTTP server starts reliably 
 
 ### Local Tool Integration (stdio mode)
 
-For Smithery integration as a local tool, you **must** use stdio mode:
+For Smithery integration as a local tool, you **must** use stdio mode with the required logging configuration:
 
 ```bash
 # Set environment variable to ensure only stdio mode runs
 export MCP_STDIO_MODE=1  # On Windows: set MCP_STDIO_MODE=1
-python server.py
+
+# Run with the required logging configuration
+python -Dlogging.config=classpath:logback-stdio.xml server.py
 ```
 
 Or use the provided convenience scripts:
@@ -176,7 +178,7 @@ Configure Smithery to use the server as a local tool:
 {
   "name": "calculator",
   "description": "A basic calculator that can perform arithmetic operations",
-  "command": ["python", "server.py"],
+  "command": ["python", "-Dlogging.config=classpath:logback-stdio.xml", "server.py"],
   "env": {
     "MCP_STDIO_MODE": "1"
   },
@@ -184,9 +186,9 @@ Configure Smithery to use the server as a local tool:
 }
 ```
 
-This configuration ensures the server communicates via stdio when run by Smithery as a local tool.
+This configuration ensures the server communicates via stdio when run by Smithery as a local tool and properly configures the logging system.
 
-> **IMPORTANT**: For local tool integration, you must use stdio mode (MCP_STDIO_MODE=1). HTTP mode will not work for local tool integration.
+> **IMPORTANT**: For local tool integration, you must use stdio mode (MCP_STDIO_MODE=1) with the logging configuration flag. HTTP mode will not work for local tool integration.
 
 ### Remote Tool Integration (HTTP mode)
 
