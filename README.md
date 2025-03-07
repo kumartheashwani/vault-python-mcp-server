@@ -148,9 +148,29 @@ docker run -p 8000:8000 mcp-calculator-server
 
 The container uses `uvicorn` directly to ensure the HTTP server starts reliably with proper signal handling, making the API endpoints accessible at http://localhost:8000.
 
-### Smithery Local Tool
+## Smithery Integration
 
-For Smithery deployment as a local tool, configure it to use `server.py` with the `MCP_STDIO_MODE` environment variable:
+### Local Tool Integration (stdio mode)
+
+For Smithery integration as a local tool, you **must** use stdio mode:
+
+```bash
+# Set environment variable to ensure only stdio mode runs
+export MCP_STDIO_MODE=1  # On Windows: set MCP_STDIO_MODE=1
+python server.py
+```
+
+Or use the provided convenience scripts:
+
+```bash
+# On Unix/Linux/Mac
+./start-smithery.sh
+
+# On Windows
+start-smithery.bat
+```
+
+Configure Smithery to use the server as a local tool:
 
 ```json
 {
@@ -166,9 +186,11 @@ For Smithery deployment as a local tool, configure it to use `server.py` with th
 
 This configuration ensures the server communicates via stdio when run by Smithery as a local tool.
 
-### Smithery Remote Tool
+> **IMPORTANT**: For local tool integration, you must use stdio mode (MCP_STDIO_MODE=1). HTTP mode will not work for local tool integration.
 
-For Smithery deployment as a remote tool (e.g., in a container), configure it to use the dedicated MCP endpoint:
+### Remote Tool Integration (HTTP mode)
+
+For Smithery integration as a remote tool (e.g., in a container), use HTTP mode with the dedicated MCP endpoint:
 
 ```json
 {

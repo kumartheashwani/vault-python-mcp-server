@@ -1,11 +1,9 @@
 {
-  "tools": [
-    {
-      "name": "calculator",
-      "description": "A basic calculator that can perform arithmetic operations",
-      "command": ["python", "smithery_mode.py"],
-      "type": "local",
-      "working_dir": "${TOOL_DIR}"
-    }
-  ]
+  "name": "calculator",
+  "description": "A basic calculator that can perform arithmetic operations",
+  "command": ["python", "server.py"],
+  "env": {
+    "MCP_STDIO_MODE": "1"
+  },
+  "type": "local"
 } 
