@@ -15,11 +15,17 @@ RUN apt-get update \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Create logs directory
+RUN mkdir -p /app/logs && chmod 777 /app/logs
+
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the logging configuration files
+COPY logback-*.xml /app/
 
 # Copy the rest of the application code
 COPY . .

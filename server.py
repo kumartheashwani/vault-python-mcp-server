@@ -7,8 +7,30 @@ import asyncio
 import threading
 import signal
 import os
+import logging
+from loguru import logger
 
-app = FastAPI()
+# Configure logging
+logger.remove()
+logger.add(sys.stderr, level="INFO")
+logger.add("logs/server.log", rotation="10 MB", level="DEBUG")
+
+# Create logs directory if it doesn't exist
+os.makedirs("logs", exist_ok=True)
+
+# Log startup information
+logger.info("Initializing MCP Calculator Server")
+logger.debug(f"Python version: {sys.version}")
+logger.debug(f"Environment variables: MCP_STDIO_MODE={os.environ.get('MCP_STDIO_MODE')}, MCP_HTTP_MODE={os.environ.get('MCP_HTTP_MODE')}")
+
+try:
+    app = FastAPI()
+    
+    # Log FastAPI initialization
+    logger.info("FastAPI application initialized")
+except Exception as e:
+    logger.exception(f"Error initializing FastAPI application: {e}")
+    sys.exit(1)
 
 class CalculatorTool:
     def __init__(self):
@@ -498,43 +520,65 @@ async def handle_stdio_jsonrpc():
 
 def start_stdio_mode():
     """Start the server in stdio mode"""
-    print("Starting in stdio mode", file=sys.stderr)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(handle_stdio_jsonrpc())
-    finally:
-        loop.close()
+        logger.info("Starting in stdio mode")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(handle_stdio_jsonrpc())
+        except Exception as e:
+            logger.exception(f"Error in stdio mode event loop: {e}")
+            raise
+        finally:
+            loop.close()
+    except Exception as e:
+        logger.exception(f"Failed to start stdio mode: {e}")
+        sys.exit(1)
 
 def start_http_mode():
     """Start the server in HTTP mode with uvicorn"""
-    # Ensure the server is initialized in HTTP mode
-    server_state.initialized = True
-    print("Starting in HTTP mode with auto-initialization", file=sys.stderr)
-    
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
+    try:
+        # Ensure the server is initialized in HTTP mode
+        server_state.initialized = True
+        logger.info("Starting in HTTP mode with auto-initialization")
+        
+        import uvicorn
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=8000, 
+            reload=False,
+            log_level="info",
+            access_log=True
+        )
+    except Exception as e:
+        logger.exception(f"Failed to start HTTP mode: {e}")
+        sys.exit(1)
 
 # This code only runs when the script is executed directly, not when imported by uvicorn
 if __name__ == "__main__":
-    # Check if we should run in stdio mode (for Smithery)
-    if os.environ.get("MCP_STDIO_MODE") == "1":
-        # Run only stdio mode when MCP_STDIO_MODE is set
-        print("Starting in exclusive stdio mode (MCP_STDIO_MODE=1)", file=sys.stderr)
-        start_stdio_mode()
-    elif os.environ.get("MCP_HTTP_MODE") == "1":
-        # Run only HTTP mode when MCP_HTTP_MODE is set
-        print("Starting in exclusive HTTP mode (MCP_HTTP_MODE=1)", file=sys.stderr)
-        start_http_mode()
-    else:
-        # For development/testing only - warn about dual mode
-        print("WARNING: Starting in dual mode (both HTTP and stdio). This is not recommended for production.", file=sys.stderr)
-        print("Use MCP_STDIO_MODE=1 or MCP_HTTP_MODE=1 to run in a single mode.", file=sys.stderr)
-        
-        # Start HTTP server in a separate thread
-        http_thread = threading.Thread(target=start_http_mode)
-        http_thread.daemon = True
-        http_thread.start()
-        
-        # Also handle stdio in the main thread
-        start_stdio_mode() 
+    try:
+        # Check if we should run in stdio mode (for Smithery)
+        if os.environ.get("MCP_STDIO_MODE") == "1":
+            # Run only stdio mode when MCP_STDIO_MODE is set
+            logger.info("Starting in exclusive stdio mode (MCP_STDIO_MODE=1)")
+            start_stdio_mode()
+        elif os.environ.get("MCP_HTTP_MODE") == "1":
+            # Run only HTTP mode when MCP_HTTP_MODE is set
+            logger.info("Starting in exclusive HTTP mode (MCP_HTTP_MODE=1)")
+            start_http_mode()
+        else:
+            # For development/testing only - warn about dual mode
+            logger.warning("Starting in dual mode (both HTTP and stdio). This is not recommended for production.")
+            logger.warning("Use MCP_STDIO_MODE=1 or MCP_HTTP_MODE=1 to run in a single mode.")
+            
+            # Start HTTP server in a separate thread
+            http_thread = threading.Thread(target=start_http_mode)
+            http_thread.daemon = True
+            http_thread.start()
+            
+            # Also handle stdio in the main thread
+            start_stdio_mode()
+    except Exception as e:
+        logger.exception(f"Unhandled exception in main: {e}")
+        sys.exit(1) 

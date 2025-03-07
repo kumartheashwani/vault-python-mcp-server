@@ -16,11 +16,17 @@ RUN apt-get update \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Create logs directory
+RUN mkdir -p /app/logs && chmod 777 /app/logs
+
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the logging configuration files
+COPY logback-*.xml /app/
 
 # Copy the rest of the application code
 COPY . .
@@ -31,4 +37,4 @@ EXPOSE 8000
 # Command to run the application
 # Use uvicorn directly for container deployments to ensure
 # the HTTP server starts reliably with proper signal handling
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["python", "http_server.py"] 
