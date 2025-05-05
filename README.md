@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/kumartheashwani-vault-python-mcp-server-badge.png)](https://mseep.ai/app/kumartheashwani-vault-python-mcp-server)
+
 # MCP Calculator Server
 
 A Model Context Protocol (MCP) server implementation with a basic calculator tool. This server can be deployed in Smithery and provides arithmetic operations through a REST API.
